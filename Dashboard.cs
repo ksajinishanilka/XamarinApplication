@@ -99,6 +99,7 @@ namespace XamarinApp
             var docs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
             String guid = Guid.NewGuid().ToString();
             UserImage img = new UserImage();
+            
             try
             {
                 var destination = System.IO.Path.Combine(docs, "Uploads");   // Output: "/data/user/0/ESH_APP.ESH_APP/files/"MyFile.sqlite"

@@ -11,6 +11,7 @@ using Firebase.Xamarin.Database.Query;
 using SQLite;
 using System;
 using System.IO;
+using System.Linq;
 using static Android.Graphics.Bitmap;
 using static Android.Views.View;
 
@@ -25,7 +26,32 @@ namespace XamarinApp
         EditText input_email, input_password, input_password_reenter;
         RelativeLayout activity_sign_up;
         FirebaseAuth auth;
+        Database db;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+
+        protected override void OnCreate(Bundle savedInstanceState)
+        {
+            base.OnCreate(savedInstanceState);
+            // Create your application here  
+            SetContentView(Resource.Layout.SignUp);
+            //Init Firebase  
+            auth = FirebaseAuth.GetInstance(MainActivity.app);
+            //create database
+            db = new Database();
+            db.CreateDatabase();
+
+            //Views  
+            btnSignup = FindViewById<Button>(Resource.Id.signup_btn_register);
+            btnLogin = FindViewById<TextView>(Resource.Id.signup_btn_login);
+            btnForgetPass = FindViewById<TextView>(Resource.Id.signup_btn_forget_password);
+            input_email = FindViewById<EditText>(Resource.Id.signup_email);
+            input_password = FindViewById<EditText>(Resource.Id.signup_password);
+            input_password_reenter = FindViewById<EditText>(Resource.Id.signup_password_reeneter);
+            activity_sign_up = FindViewById<RelativeLayout>(Resource.Id.activity_sign_up);
+            btnLogin.SetOnClickListener(this);
+            btnSignup.SetOnClickListener(this);
+            btnForgetPass.SetOnClickListener(this);
+        }
         public void OnClick(View v)
         {
             if (v.Id == Resource.Id.signup_btn_login)
@@ -50,14 +76,13 @@ namespace XamarinApp
 
             if (ValidateSignUp(email, password))
             {
-                //sqlite
-                string dpPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3");
-                var db = new SQLiteConnection(dpPath);
-                User user = new User();
-                user.Username = email;
-                user.Password = password;
+                User user = new User()
+                {
+                    Username = email,
+                    Password = password
+                };
+                db.InsertIntoUserTable(user);
 
-                db.Insert(user);
                 Toast.MakeText(this, "Registration Successfull", ToastLength.Short).Show();
 
                 auth.CreateUserWithEmailAndPassword(email, password);
@@ -67,11 +92,12 @@ namespace XamarinApp
 
         private bool ValidateSignUp(string email, string password)
         {
-            string dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3"); //Call Database  
-            var db = new SQLiteConnection(dbPath);
+            //string dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3"); //Call Database  
+            //var db = new SQLiteConnection(dbPath);
 
-            db.CreateTable<User>();
-            var data = db.Table<User>(); //Call Table  
+            //db.CreateTable<User>();
+            //var data = db.Table<User>(); //Call Table  
+            var data = db.SelectUserTable();
             var userData = data.Where(x => x.Username == input_email.Text).FirstOrDefault(); //Linq Query  
             if (userData != null)
             {
@@ -95,27 +121,7 @@ namespace XamarinApp
             }
             return true;
         }
-        protected override void OnCreate(Bundle savedInstanceState)
-        {
-            base.OnCreate(savedInstanceState);
-            // Create your application here  
-            SetContentView(Resource.Layout.SignUp);
-            //Init Firebase  
-            auth = FirebaseAuth.GetInstance(MainActivity.app);
-            //Views  
-            btnSignup = FindViewById<Button>(Resource.Id.signup_btn_register);
-            btnLogin = FindViewById<TextView>(Resource.Id.signup_btn_login);
-            btnForgetPass = FindViewById<TextView>(Resource.Id.signup_btn_forget_password);
-            input_email = FindViewById<EditText>(Resource.Id.signup_email);
-            input_password = FindViewById<EditText>(Resource.Id.signup_password);
-            input_password_reenter = FindViewById<EditText>(Resource.Id.signup_password_reeneter); 
-            activity_sign_up = FindViewById<RelativeLayout>(Resource.Id.activity_sign_up);
-            btnLogin.SetOnClickListener(this);
-            btnSignup.SetOnClickListener(this);
-            btnForgetPass.SetOnClickListener(this);
-
-
-        }
+      
         public void OnComplete(Task task)
         {
             if (task.IsSuccessful == true)

@@ -13,7 +13,7 @@ using SQLite;
 
 namespace XamarinApp
 {
-    class UserImage
+    public class UserImage
     {
         [PrimaryKey, AutoIncrement, Column("_Id")]
 

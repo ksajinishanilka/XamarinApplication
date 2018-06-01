@@ -13,7 +13,7 @@ using SQLite;
 
 namespace XamarinApp
 {
-    class User
+    public class User
     {
         [PrimaryKey, Column("_Username")]
         public string Username { get; set; }

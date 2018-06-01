@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dashboard.cs" />
+    <Compile Include="Database.cs" />
     <Compile Include="ForgetPassword.cs" />
     <Compile Include="MainActivity.cs" />
     <Compile Include="ProfileActivity.cs" />
