@@ -1,4 +1,5 @@
 ﻿using Android.Util;
+using Firebase.Auth;
 using SQLite;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,7 @@ namespace XamarinApp
     public class Database
     {
         string folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+        private FirebaseAuth auth= FirebaseAuth.GetInstance(MainActivity.app);
         public bool CreateDatabase()
         {
             try
@@ -25,6 +27,7 @@ namespace XamarinApp
                 return false;
             }
         }
+
         //Add or Insert Operation for user table  
 
         public bool InsertIntoUserTable(User user)
@@ -58,23 +61,39 @@ namespace XamarinApp
                 return null;
             }
         }
-
-        //Edit Operation  
-
-        public bool UpdateUserTable(User user)
+        //select single user
+        public List<User> SelectSingleUserTable()
         {
             try
             {
                 using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
                 {
-                    connection.Query<User>("UPDATE Person set FirstName=?, LastName=?, City=?,PhoneNumber=? Where user.Username=auth.Currentuser.Email", user.FirstName, user.LastName, user.City, user.PhoneNumber);
-                    return true;
+                    return connection.Query<User>("SELECT * FROM User WHERE _Username=? COLLATE NOCASE", auth.CurrentUser.Email);
                 }
             }
             catch (SQLiteException ex)
             {
                 Log.Info("SQLiteEx", ex.Message);
-                return false;
+                return null;
+            }
+        }
+
+        //Edit Operation  
+
+        public int UpdateUserTable(User user)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                {
+                    connection.Query<User>("UPDATE User set FirstName=?, LastName=?, City=?,PhoneNumber=? Where _Username=?" , user.FirstName, user.LastName, user.City, user.PhoneNumber, auth.CurrentUser.Email);
+                    return 1;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Info("SQLiteEx", ex.Message);
+                return 0;
             }
         }
         //Delete Data Operation  
@@ -97,13 +116,13 @@ namespace XamarinApp
         }
         //Select Operation  
 
-        public bool SelectUserTable(int Id)
+        public bool SelectUserTable(string Username)
         {
             try
             {
                 using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
                 {
-                    connection.Query<User>("SELECT * FROM Person Where Id=?", Id);
+                    connection.Query<User>("SELECT * FROM User WHERE Username=? COLLATE NOCASE",auth.CurrentUser.Email);
                     return true;
                 }
             }

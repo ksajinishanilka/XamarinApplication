@@ -23,6 +23,7 @@ namespace XamarinApp
         RelativeLayout activity_profile;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+        Database db;
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
@@ -41,10 +42,11 @@ namespace XamarinApp
             btnSavedata.SetOnClickListener(this);
             btnLogout.SetOnClickListener(this);
 
-            string dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3");
-            var db = new SQLiteConnection(dbPath);
-            String query = "SELECT * FROM user WHERE _Username" + " = '" + auth.CurrentUser.Email + "' COLLATE NOCASE";
-            var curUsers = db.Query<User>(query);
+            //create database
+            db = new Database();
+            db.CreateDatabase();
+            var curUsers = db.SelectSingleUserTable();
+
             foreach (var curUser in curUsers)
             {
                 input_first_name.Text = curUser.FirstName;
@@ -52,6 +54,7 @@ namespace XamarinApp
                 input_city.Text = curUser.City;
                 input_phonenumber.Text = curUser.PhoneNumber;
             }
+
             if (auth != null)
                 txtWelcome.Text = auth.CurrentUser.Email;
         }
@@ -106,11 +109,7 @@ namespace XamarinApp
             user.City = city;
             user.PhoneNumber = phonenumber;
 
-            string dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3");
-            var db = new SQLiteConnection(dbPath);
-            
-
-            int updatedRows = db.Update(
+            int updatedRows = db.UpdateUserTable(
                 new User
                 {
                     Username = auth.CurrentUser.Email,

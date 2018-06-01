@@ -2,17 +2,10 @@
 using Android.Content;
 using Android.Gms.Tasks;
 using Android.OS;
-using Android.Support.Design.Widget;
 using Android.Views;
 using Android.Widget;
 using Firebase.Auth;
-using Firebase.Xamarin.Database;
-using Firebase.Xamarin.Database.Query;
-using SQLite;
-using System;
-using System.IO;
 using System.Linq;
-using static Android.Graphics.Bitmap;
 using static Android.Views.View;
 
 
@@ -92,11 +85,6 @@ namespace XamarinApp
 
         private bool ValidateSignUp(string email, string password)
         {
-            //string dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3"); //Call Database  
-            //var db = new SQLiteConnection(dbPath);
-
-            //db.CreateTable<User>();
-            //var data = db.Table<User>(); //Call Table  
             var data = db.SelectUserTable();
             var userData = data.Where(x => x.Username == input_email.Text).FirstOrDefault(); //Linq Query  
             if (userData != null)

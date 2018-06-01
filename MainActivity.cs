@@ -11,6 +11,7 @@ using Android.Support.Design.Widget;
 using SQLite;
 using System.IO;
 using Firebase.Xamarin.Database;
+using System.Linq;
 
 namespace XamarinApp
 {
@@ -24,6 +25,7 @@ namespace XamarinApp
         public static FirebaseApp app;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+        Database db;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -32,6 +34,11 @@ namespace XamarinApp
             SetContentView(Resource.Layout.Main);
             //Init Auth  
             InitFirebaseAuth();
+
+            //create database
+            db = new Database();
+            db.CreateDatabase();
+
             //Views  
             btnLogin = FindViewById<Button>(Resource.Id.login_btn_login);
             input_email = FindViewById<EditText>(Resource.Id.login_email);
@@ -82,12 +89,8 @@ namespace XamarinApp
 
         private void LoginUser(string email, string password)
         {
-            auth.SignInWithEmailAndPassword(email, password).AddOnCompleteListener(this);
-            //sqlite
-            string dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3"); //Call Database  
-            var db = new SQLiteConnection(dbPath);
-            db.CreateTable<User>();
-            var data = db.Table<User>(); //Call Table  
+            auth.SignInWithEmailAndPassword(email, password).AddOnCompleteListener(this); 
+            var data = db.SelectUserTable();
             var userData = data.Where(x => x.Username == input_email.Text && x.Password == input_password.Text).FirstOrDefault(); //Linq Query  
             if (userData != null)
             {

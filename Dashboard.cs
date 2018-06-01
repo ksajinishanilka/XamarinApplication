@@ -2,7 +2,6 @@
 using Android.Content;
 using Android.Gms.Tasks;
 using Android.OS;
-using Android.Support.Design.Widget;
 using Android.Support.V7.App;
 using Android.Views;
 using Android.Widget;
@@ -11,31 +10,28 @@ using static Android.Views.View;
 using Android.Graphics;
 using Android.Provider;
 using Android.Runtime;
-using Firebase;
 using Firebase.Storage;
 using System;
 using System.IO;
-using SQLite;
-using Android.Database;
 using Firebase.Xamarin.Database;
 
 namespace XamarinApp
 {
     [Activity(Label = "Dashboard", Theme = "@style/AppTheme")]
-    public class Dashboard : AppCompatActivity, IOnClickListener, IOnCompleteListener, IOnProgressListener, IOnSuccessListener, IOnFailureListener
+    public class Dashboard : AppCompatActivity, IOnClickListener,IOnProgressListener, IOnSuccessListener, IOnFailureListener
     {
         Button btnChangePass, btnLogout, btnProfile;
         RelativeLayout activity_dashboard;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
-
         private Button btnUpload, btnChoose;
         private ImageView imgView;
         private Android.Net.Uri filePath;
         private const int PICK_IMAGE_REQUSET = 71;
-        ProgressDialog progressDialog;
+        //ProgressDialog progressDialog;
         FirebaseStorage storage;
         StorageReference storageRef;
+        Database db;
         public void OnClick(View v)
         {
             if (v.Id == Resource.Id.dashboard_btn_change_pass)
@@ -63,6 +59,10 @@ namespace XamarinApp
             auth = FirebaseAuth.GetInstance(MainActivity.app);
             storage = FirebaseStorage.Instance;
             storageRef = storage.GetReferenceFromUrl("gs://xamarinapp-67afd.appspot.com");
+
+            //create database
+            db = new Database();
+            db.CreateDatabase();
             //View  
             btnChangePass = FindViewById<Button>(Resource.Id.dashboard_btn_change_pass);
             btnLogout = FindViewById<Button>(Resource.Id.dashboard_btn_logout);
@@ -109,12 +109,9 @@ namespace XamarinApp
                 var uploadImage = System.IO.Path.Combine(destination, fileName);
                 File.Copy(absolutePath, uploadImage);
 
-                string dbPath = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "user.db3");
-                var db = new SQLiteConnection(dbPath);
-                db.CreateTable<UserImage>();
                 img.Username = auth.CurrentUser.Email;
                 img.ImageRef = uploadImage;
-                db.Insert(img);
+                db.InsertIntoUserImageTable(img);
             }
             catch (Exception ex)
             {
@@ -172,17 +169,7 @@ namespace XamarinApp
             Toast.MakeText(this, "" + e.Message, ToastLength.Short).Show();
         }
 
-        public void OnComplete(Task task)
-        {
-            if (task.IsSuccessful == true)
-            {
-                Toast.MakeText(this, "Password has been Changed!", ToastLength.Short).Show();
-            }
-        }
-
-
-
-
+       
         public static string GetRealPathFromURI(Context context, Android.Net.Uri uri)
         {
             bool isKitKat = Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Kitkat;
