@@ -45,20 +45,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         style="@style/Widget.AppCompat.Button.Colored" />
-    <TextView
-        android:layout_below="@+id/login_btn_login"
-        android:id="@+id/login_btn_forget_password"
-        android:text="Forget Password"
-        android:textStyle="bold"
-        android:clickable="true"
-        android:layout_centerHorizontal="true"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/colorPrimaryDark"
-        style="@style/Widget.AppCompat.Button.Borderless" />
     <LinearLayout
-        android:layout_below="@+id/login_btn_forget_password"
+        android:layout_below="@+id/login_btn_login"
         android:id="@+id/login_layout_or"
+        android:layout_marginTop="20dp"
         android:gravity="center"
         android:orientation="horizontal"
         android:layout_width="match_parent"

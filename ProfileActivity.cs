@@ -1,5 +1,4 @@
 ﻿using System;
-using Android.Gms.Tasks;
 using Android.App;
 using Android.Content;
 using Android.OS;
@@ -9,13 +8,12 @@ using Firebase.Auth;
 using Firebase.Xamarin.Database;
 using static Android.Views.View;
 using System.Text.RegularExpressions;
-using System.IO;
-using SQLite;
+using Firebase.Xamarin.Database.Query;
 
 namespace XamarinApp
 {
     [Activity(Label = "ProfileActivity", Theme = "@style/AppTheme")]
-    public class ProfileActivity : Activity, IOnClickListener, IOnCompleteListener
+    public class ProfileActivity : Activity, IOnClickListener
     {
         TextView txtWelcome;
         Button btnSavedata, btnLogout;
@@ -45,18 +43,17 @@ namespace XamarinApp
             //create database
             db = new Database();
             db.CreateDatabase();
-            var curUsers = db.SelectSingleUserTable();
+            var curUser = db.SelectSingleUser(AppData.LoggedInUser)[0];//retreive the logged in user object from the database
 
-            foreach (var curUser in curUsers)
-            {
-                input_first_name.Text = curUser.FirstName;
-                input_last_name.Text = curUser.LastName;
-                input_city.Text = curUser.City;
-                input_phonenumber.Text = curUser.PhoneNumber;
-            }
-
-            if (auth != null)
-                txtWelcome.Text = auth.CurrentUser.Email;
+            
+            input_first_name.Text = curUser.FirstName;
+            input_last_name.Text = curUser.LastName;
+            input_city.Text = curUser.City;
+            input_phonenumber.Text = curUser.PhoneNumber;
+            
+            string variable = AppData.LoggedInUser;
+            if (variable != null)
+                txtWelcome.Text = variable;
         }
         public void OnClick(View v)
         {
@@ -94,6 +91,7 @@ namespace XamarinApp
         }
         private void LogoutUser()
         {
+            Console.WriteLine("Current user is " + auth.CurrentUser);
             auth.SignOut();
             if (auth.CurrentUser == null)
             {
@@ -103,39 +101,27 @@ namespace XamarinApp
         }
         private void SaveUserDetail(string firstname, string lastname, string city, string phonenumber)
         {
-            User user = new User();
-            user.FirstName = firstname;
-            user.LastName = lastname;
-            user.City = city;
-            user.PhoneNumber = phonenumber;
-
-            int updatedRows = db.UpdateUserTable(
-                new User
-                {
-                    Username = auth.CurrentUser.Email,
-                    FirstName = firstname,
-                    LastName = lastname,
-                    City = city,
-                    PhoneNumber = phonenumber
-                }
-            );
+            User currentUser = db.SelectSingleUser(AppData.LoggedInUser)[0];
+            currentUser.FirstName = firstname;
+            currentUser.LastName = lastname;
+            currentUser.City = city;
+            currentUser.PhoneNumber = phonenumber;
+            currentUser.UpdatedAt = DateTime.Now;
+            int updatedRows = db.UpdateUserTable(currentUser);
 
             if (updatedRows == 1)
             {
-                var firebase = new FirebaseClient(FirebaseURL);
-                firebase.Child("users").PostAsync<User>(user);
-                Toast.MakeText(this, "Profile Updated..", ToastLength.Short).Show();
-            }
-            else
-            {
-                Toast.MakeText(this, "Profile Update Failed.. ", ToastLength.Short).Show();
-            }
-        }
-
-        public void OnComplete(Task task)
-        {
-            if (task.IsSuccessful == true)
-            {
+                User updatedUser = db.SelectSingleUser(AppData.LoggedInUser)[0];
+                var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
+                if (reachability.IsHostReachable("www.google.com"))
+                {
+                    var firebase = new FirebaseClient(FirebaseURL);
+                    var fbResult = firebase.Child("users").Child(updatedUser.FirebaseReference).PatchAsync(updatedUser);
+                } else
+                {
+                    currentUser.FirebaseUpdated = 0;
+                    db.UpdateUserTable(currentUser);// record that the firebase database was not updated
+                }
                 Toast.MakeText(this, "Profile Updated.", ToastLength.Short).Show();
             }
             else

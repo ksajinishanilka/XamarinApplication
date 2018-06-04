@@ -1,10 +1,11 @@
 ﻿using Android.App;
 using Android.Content;
-using Android.Gms.Tasks;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
 using Firebase.Auth;
+using Firebase.Xamarin.Database;
+using System;
 using System.Linq;
 using static Android.Views.View;
 
@@ -12,38 +13,36 @@ using static Android.Views.View;
 namespace XamarinApp
 {
     [Activity(Label = "SignUp", Theme = "@style/AppTheme")]
-    public class SignUp : Activity, IOnClickListener, IOnCompleteListener
+    public class SignUp : Activity, IOnClickListener
     {
         Button btnSignup;
-        TextView btnLogin, btnForgetPass;
+        TextView btnLogin;
         EditText input_email, input_password, input_password_reenter;
         RelativeLayout activity_sign_up;
         FirebaseAuth auth;
         Database db;
+        OfflineHandler dataHandler;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
-            // Create your application here  
             SetContentView(Resource.Layout.SignUp);
             //Init Firebase  
             auth = FirebaseAuth.GetInstance(MainActivity.app);
-            //create database
+            //create local database
             db = new Database();
             db.CreateDatabase();
-
-            //Views  
+            dataHandler = new OfflineHandler();
+             //Views  
             btnSignup = FindViewById<Button>(Resource.Id.signup_btn_register);
             btnLogin = FindViewById<TextView>(Resource.Id.signup_btn_login);
-            btnForgetPass = FindViewById<TextView>(Resource.Id.signup_btn_forget_password);
             input_email = FindViewById<EditText>(Resource.Id.signup_email);
             input_password = FindViewById<EditText>(Resource.Id.signup_password);
             input_password_reenter = FindViewById<EditText>(Resource.Id.signup_password_reeneter);
             activity_sign_up = FindViewById<RelativeLayout>(Resource.Id.activity_sign_up);
             btnLogin.SetOnClickListener(this);
             btnSignup.SetOnClickListener(this);
-            btnForgetPass.SetOnClickListener(this);
         }
         public void OnClick(View v)
         {
@@ -53,40 +52,47 @@ namespace XamarinApp
                 Finish();
             }
             else
-            if (v.Id == Resource.Id.signup_btn_forget_password)
-            {
-                StartActivity(new Intent(this, typeof(ForgetPassword)));
-                Finish();
-            }
-            else
             if (v.Id == Resource.Id.signup_btn_register)
             {
                 SignUpUser(input_email.Text, input_password.Text);
             }
         }
-        private void SignUpUser(string email, string password)
+        private async void SignUpUser(string email, string password)
         {
 
             if (ValidateSignUp(email, password))
             {
+                password = AppData.EncryptPassword(password);
                 User user = new User()
                 {
                     Username = email,
-                    Password = password
+                    Password = password,
+                    CreatedAt = DateTime.Now
                 };
+              
+                
                 db.InsertIntoUserTable(user);
+                User addedUser = db.SelectSingleUser(email)[0];
 
-                Toast.MakeText(this, "Registration Successfull", ToastLength.Short).Show();
-
-                auth.CreateUserWithEmailAndPassword(email, password);
+                var reachability = new Reachability.Net.XamarinAndroid.Reachability();
+                if (reachability.IsHostReachable("www.google.com"))
+                {
+                    var firebase = new FirebaseClient(FirebaseURL);
+                    var firebaseKey = (await firebase.Child("users").PostAsync<User>(addedUser)).Key;
+                    user.FirebaseReference = firebaseKey.ToString();
+                    db.UpdateUserTable(user);
+                    auth.CreateUserWithEmailAndPassword(email, password);
+                }
+                Toast.MakeText(this, "You Registered Successfully ", ToastLength.Short).Show();
+                StartActivity(new Android.Content.Intent(this, typeof(MainActivity)));
             }
 
         }
-
+ 
         private bool ValidateSignUp(string email, string password)
         {
-            var data = db.SelectUserTable();
-            var userData = data.Where(x => x.Username == input_email.Text).FirstOrDefault(); //Linq Query  
+            var data = db.SelectUserTable();// retrieve all users in the user table
+            var userData = data.Where(x => x.Username == email).FirstOrDefault(); //Linq Query  
             if (userData != null)
             {
                 Toast.MakeText(this, "Signup Failed. Email Already Exists", ToastLength.Short).Show();
@@ -109,17 +115,6 @@ namespace XamarinApp
             }
             return true;
         }
-      
-        public void OnComplete(Task task)
-        {
-            if (task.IsSuccessful == true)
-            {
-                Toast.MakeText(this, "You Registered Successfully ", ToastLength.Short).Show();
-            }
-            else
-            {
-                Toast.MakeText(this, "Registration Failed, make sure the password contains minimum of 6 characters. ", ToastLength.Short).Show();
-            }
-        }
+
     }
 }

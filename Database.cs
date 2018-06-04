@@ -1,6 +1,7 @@
 ﻿using Android.Util;
 using Firebase.Auth;
 using SQLite;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 namespace XamarinApp
@@ -9,12 +10,13 @@ namespace XamarinApp
     public class Database
     {
         string folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
-        private FirebaseAuth auth= FirebaseAuth.GetInstance(MainActivity.app);
+        private FirebaseAuth auth = FirebaseAuth.GetInstance(MainActivity.app);
+        private const string DatabaseName = "user.db3";
         public bool CreateDatabase()
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName)))
                 {
                     connection.CreateTable<User>();
                     connection.CreateTable<UserImage>();
@@ -28,13 +30,12 @@ namespace XamarinApp
             }
         }
 
-        //Add or Insert Operation for user table  
-
+        //Insert Operation for user table
         public bool InsertIntoUserTable(User user)
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName),false))
                 {
                     connection.Insert(user);
                     return true;
@@ -46,11 +47,12 @@ namespace XamarinApp
                 return false;
             }
         }
+        //Select Operation for User Table
         public List<User> SelectUserTable()
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName),false))
                 {
                     return connection.Table<User>().ToList();
                 }
@@ -61,14 +63,14 @@ namespace XamarinApp
                 return null;
             }
         }
-        //select single user
-        public List<User> SelectSingleUserTable()
+        //Select a single user by username
+        public List<User> SelectSingleUser(string Username)
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
                 {
-                    return connection.Query<User>("SELECT * FROM User WHERE _Username=? COLLATE NOCASE", auth.CurrentUser.Email);
+                    return connection.Query<User>("SELECT * FROM User WHERE _Username=? COLLATE NOCASE", Username);
                 }
             }
             catch (SQLiteException ex)
@@ -77,16 +79,15 @@ namespace XamarinApp
                 return null;
             }
         }
-
-        //Edit Operation  
-
+        //Update Operation by giving a user object
         public int UpdateUserTable(User user)
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
                 {
-                    connection.Query<User>("UPDATE User set FirstName=?, LastName=?, City=?,PhoneNumber=? Where _Username=?" , user.FirstName, user.LastName, user.City, user.PhoneNumber, auth.CurrentUser.Email);
+                    user.UpdatedAt = DateTime.Now;
+                    connection.Update(user);
                     return 1;
                 }
             }
@@ -96,49 +97,44 @@ namespace XamarinApp
                 return 0;
             }
         }
-        //Delete Data Operation  
-
-        public bool RemoveUserTable(User user)
+        //Select offline added users
+        public List<User> GetOfflineAddedUsers()
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
                 {
-                    connection.Delete(user);
-                    return true;
+                    return connection.Query<User>("SELECT * FROM User where FirebaseReference is null or FirebaseReference = ''");
                 }
             }
             catch (SQLiteException ex)
             {
                 Log.Info("SQLiteEx", ex.Message);
-                return false;
+                return null;
             }
         }
-        //Select Operation  
-
-        public bool SelectUserTable(string Username)
+        //Select offline updated users
+        public List<User> GetOfflinUpdatedUsers()
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
                 {
-                    connection.Query<User>("SELECT * FROM User WHERE Username=? COLLATE NOCASE",auth.CurrentUser.Email);
-                    return true;
+                    return connection.Query<User>("SELECT * FROM User where FirebaseUpdated =  0");
                 }
             }
             catch (SQLiteException ex)
             {
                 Log.Info("SQLiteEx", ex.Message);
-                return false;
+                return null;
             }
         }
-
         //UserImage table operations
         public bool InsertIntoUserImageTable(UserImage userImage)
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
                 {
                     connection.Insert(userImage);
                     return true;
@@ -150,13 +146,14 @@ namespace XamarinApp
                 return false;
             }
         }
-        public List<UserImage> SelectUserIamgeTable()
+        //Select offline added userimages
+        public List<UserImage> GetOfflineAddedUserImages()
         {
             try
             {
-                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, "user.db3")))
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
                 {
-                    return connection.Table<UserImage>().ToList();
+                    return connection.Query<UserImage>("SELECT * FROM UserImage where FirebaseReference is null or FirebaseReference = ''");
                 }
             }
             catch (SQLiteException ex)
@@ -165,5 +162,6 @@ namespace XamarinApp
                 return null;
             }
         }
+
     }
 }

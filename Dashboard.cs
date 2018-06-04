@@ -18,9 +18,9 @@ using Firebase.Xamarin.Database;
 namespace XamarinApp
 {
     [Activity(Label = "Dashboard", Theme = "@style/AppTheme")]
-    public class Dashboard : AppCompatActivity, IOnClickListener,IOnProgressListener, IOnSuccessListener, IOnFailureListener
+    public class Dashboard : AppCompatActivity, IOnClickListener,IOnSuccessListener, IOnFailureListener
     {
-        Button btnChangePass, btnLogout, btnProfile;
+        Button btnLogout, btnProfile,btnSync;
         RelativeLayout activity_dashboard;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
@@ -28,28 +28,10 @@ namespace XamarinApp
         private ImageView imgView;
         private Android.Net.Uri filePath;
         private const int PICK_IMAGE_REQUSET = 71;
-        //ProgressDialog progressDialog;
         FirebaseStorage storage;
         StorageReference storageRef;
         Database db;
-        public void OnClick(View v)
-        {
-            if (v.Id == Resource.Id.dashboard_btn_change_pass)
-                StartActivity(new Android.Content.Intent(this, typeof(ForgetPassword)));
-            else if (v.Id == Resource.Id.dashboard_user_profile)
-                StartActivity(new Android.Content.Intent(this, typeof(ProfileActivity)));
-            else if (v.Id == Resource.Id.dashboard_btn_logout)
-                LogoutUser();
-        }
-        private void LogoutUser()
-        {
-            auth.SignOut();
-            if (auth.CurrentUser == null)
-            {
-                StartActivity(new Intent(this, typeof(MainActivity)));
-                Finish();
-            }
-        }
+        OfflineHandler dataHandler;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -64,15 +46,13 @@ namespace XamarinApp
             db = new Database();
             db.CreateDatabase();
             //View  
-            btnChangePass = FindViewById<Button>(Resource.Id.dashboard_btn_change_pass);
             btnLogout = FindViewById<Button>(Resource.Id.dashboard_btn_logout);
             btnProfile = FindViewById<Button>(Resource.Id.dashboard_user_profile);
-
+            btnSync = FindViewById<Button>(Resource.Id.dashboard_btn_sync);
             //upload view init
             btnChoose = FindViewById<Button>(Resource.Id.btnChoose);
             btnUpload = FindViewById<Button>(Resource.Id.btnUpload);
             imgView = FindViewById<ImageView>(Resource.Id.imgView);
-            //upload view init
 
             //upload events
             btnChoose.Click += delegate
@@ -84,48 +64,78 @@ namespace XamarinApp
                 UploadImage();
             };
 
-            //upload events
-
             activity_dashboard = FindViewById<RelativeLayout>(Resource.Id.activity_dashboard);
-            btnChangePass.SetOnClickListener(this);
             btnLogout.SetOnClickListener(this);
             btnProfile.SetOnClickListener(this);
-            //Check Session  
-            //if (auth.CurrentUser.Email != null)
-            //    txtWelcome.Text = "Welcome , " + auth.CurrentUser.Email;
+            btnSync.SetOnClickListener(this);
         }
+        public void OnClick(View v)
+        {
+            if (v.Id == Resource.Id.dashboard_user_profile)
+                StartActivity(new Android.Content.Intent(this, typeof(ProfileActivity)));
+            else if (v.Id == Resource.Id.dashboard_btn_sync) {
+                var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
+                if (reachability.IsHostReachable("www.google.com"))
+                {
+                    dataHandler = new OfflineHandler();
+                    dataHandler.Sync();
+                    Toast.MakeText(this, "Synced Successfully", ToastLength.Short).Show();
+                }
+                else
+                {
+                    Toast.MakeText(this, "Device is Offline", ToastLength.Short).Show();
+                }
+            }
+            else if (v.Id == Resource.Id.dashboard_btn_logout)
+                LogoutUser();
+        }
+        private void LogoutUser()
+        {
+            auth.SignOut();
+            AppData.LoggedInUser = null;
+            if (auth.CurrentUser == null)
+            {
+                StartActivity(new Intent(this, typeof(MainActivity)));
+                Finish();
+            }
+        }
+
         private void UploadImage()
         {
             var docs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
-            String guid = Guid.NewGuid().ToString();
+            
             UserImage img = new UserImage();
             
             try
             {
-                var destination = System.IO.Path.Combine(docs, "Uploads");   // Output: "/data/user/0/ESH_APP.ESH_APP/files/"MyFile.sqlite"
-                Directory.CreateDirectory(destination);
-                var absolutePath = GetRealPathFromURI(Application.Context, filePath);
-                var fileName = System.IO.Path.GetFileName(absolutePath);
-                var uploadImage = System.IO.Path.Combine(destination, fileName);
-                File.Copy(absolutePath, uploadImage);
+                var destination = System.IO.Path.Combine(docs, "Uploads"); //adding uploads folder in the path to store images
+                Directory.CreateDirectory(destination); //create uploads folder in specified path
+                var absolutePath = GetRealPathFromURI(Application.Context, filePath);//convert uri to a path
+                var fileName = System.IO.Path.GetFileName(absolutePath); //get the filename from the path
+                var uploadImage = System.IO.Path.Combine(destination, fileName); //adding the filename to the destination path
+                File.Copy(absolutePath, uploadImage); //copying the file to the uploads folder
 
-                img.Username = auth.CurrentUser.Email;
+                img.Username = AppData.LoggedInUser;
                 img.ImageRef = uploadImage;
-                db.InsertIntoUserImageTable(img);
+                img.CreatedAt = DateTime.Now;
+                db.InsertIntoUserImageTable(img); //insert data to userimage table
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Thrown exception is" + ex);
             }
-
-            var imagesref = storageRef.Child("images/" + guid); //guid assigns a new unique identifier to the image before storing in firebase
-            imagesref.PutFile(filePath)
-            .AddOnProgressListener(this)
-            .AddOnSuccessListener(this)
-            .AddOnFailureListener(this);
-            var firebase = new FirebaseClient(FirebaseURL);
-            img.ImageRef = imagesref.ToString();
-            firebase.Child("userimages").PostAsync<UserImage>(img);
+            var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
+            if (reachability.IsHostReachable("www.google.com"))
+            {
+                String guid = Guid.NewGuid().ToString();// generate a unique id
+                var imagesref = storageRef.Child("images/" + guid); //guid assigns a new unique identifier to the image before storing in firebase
+                imagesref.PutFile(filePath)//add image to firebase storage
+                .AddOnSuccessListener(this)
+                .AddOnFailureListener(this);
+                var firebase = new FirebaseClient(FirebaseURL); //add image reference to firebase database 
+                img.ImageRef = imagesref.ToString();
+                firebase.Child("userimages").PostAsync<UserImage>(img);
+            }
 
         }
         private void ChooseImage()
@@ -150,15 +160,11 @@ namespace XamarinApp
                     Bitmap bitmap = MediaStore.Images.Media.GetBitmap(ContentResolver, filePath);
                     imgView.SetImageBitmap(bitmap);
                 }
-                catch (IOException ex)
+                catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    Toast.MakeText(this, "Image is too large. ", ToastLength.Short).Show();
                 }
             }
-        }
-        public void OnProgress(Java.Lang.Object snapshot)
-        {
-            var taskSnapShot = (UploadTask.TaskSnapshot)snapshot;
         }
         public void OnSuccess(Java.Lang.Object result)
         {
