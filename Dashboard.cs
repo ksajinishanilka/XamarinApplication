@@ -128,13 +128,19 @@ namespace XamarinApp
             if (reachability.IsHostReachable("www.google.com"))
             {
                 String guid = Guid.NewGuid().ToString();// generate a unique id
+               
                 var imagesref = storageRef.Child("images/" + guid); //guid assigns a new unique identifier to the image before storing in firebase
-                imagesref.PutFile(filePath)//add image to firebase storage
-                .AddOnSuccessListener(this)
-                .AddOnFailureListener(this);
-                var firebase = new FirebaseClient(FirebaseURL); //add image reference to firebase database 
-                img.ImageRef = imagesref.ToString();
-                firebase.Child("userimages").PostAsync<UserImage>(img);
+                if (filePath != null)
+                {
+                    imagesref.PutFile(filePath)//add image to firebase storage
+                    .AddOnSuccessListener(this)
+                    .AddOnFailureListener(this);
+                    var firebase = new FirebaseClient(FirebaseURL); //add image reference to firebase database 
+                    img.ImageRef = imagesref.ToString();
+                    firebase.Child("userimages").PostAsync<UserImage>(img);
+                }else
+                    Toast.MakeText(this, "First choose an image", ToastLength.Short).Show();
+
             }
 
         }
@@ -162,7 +168,7 @@ namespace XamarinApp
                 }
                 catch (Exception ex)
                 {
-                    Toast.MakeText(this, "Image is too large. ", ToastLength.Short).Show();
+                    Toast.MakeText(this, "Out of memory", ToastLength.Short).Show();
                 }
             }
         }
