@@ -1,6 +1,5 @@
 ﻿using System;
 using Android.App;
-using Android.Content;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
@@ -16,7 +15,7 @@ namespace XamarinApp
     public class ProfileActivity : Activity, IOnClickListener
     {
         TextView txtWelcome;
-        Button btnSavedata, btnLogout;
+        Button btnSavedata, btnDashboard;
         EditText input_first_name, input_last_name, input_city, input_phonenumber;
         RelativeLayout activity_profile;
         FirebaseAuth auth;
@@ -35,10 +34,10 @@ namespace XamarinApp
             input_phonenumber = FindViewById<EditText>(Resource.Id.input_phonenumber);
             activity_profile = FindViewById<RelativeLayout>(Resource.Id.activity_profile);
 
-            btnLogout = FindViewById<Button>(Resource.Id.profile_btn_logout);
+            btnDashboard = FindViewById<Button>(Resource.Id.profile_btn_dashboard);
             btnSavedata = FindViewById<Button>(Resource.Id.profile_save_data);
             btnSavedata.SetOnClickListener(this);
-            btnLogout.SetOnClickListener(this);
+            btnDashboard.SetOnClickListener(this);
 
             //create database
             db = new Database();
@@ -60,7 +59,10 @@ namespace XamarinApp
             if (v.Id == Resource.Id.profile_save_data)
             {
                 int n;
-                if (!Regex.IsMatch(input_first_name.Text, @"^[a-zA-Z]+$"))
+                if((string.IsNullOrEmpty(input_first_name.Text)) && (string.IsNullOrEmpty(input_last_name.Text)) && (string.IsNullOrEmpty(input_city.Text)) && (string.IsNullOrEmpty(input_phonenumber.Text))){
+                    Toast.MakeText(this, "No data to save", ToastLength.Short).Show();
+                }
+                else if (!Regex.IsMatch(input_first_name.Text, @"^[a-zA-Z]+$"))
                 {
                     //first name contains characters other than letters
                     Toast.MakeText(this, "First Name should only contain letters", ToastLength.Short).Show();
@@ -86,18 +88,8 @@ namespace XamarinApp
                     SaveUserDetail(input_first_name.Text, input_last_name.Text, input_city.Text, input_phonenumber.Text);
                 }
             }
-            else if (v.Id == Resource.Id.profile_btn_logout)
-                LogoutUser();
-        }
-        private void LogoutUser()
-        {
-            Console.WriteLine("Current user is " + auth.CurrentUser);
-            auth.SignOut();
-            if (auth.CurrentUser == null)
-            {
-                StartActivity(new Intent(this, typeof(MainActivity)));
-                Finish();
-            }
+            else if (v.Id == Resource.Id.profile_btn_dashboard)
+                StartActivity(new Android.Content.Intent(this, typeof(Dashboard)));
         }
         private void SaveUserDetail(string firstname, string lastname, string city, string phonenumber)
         {
@@ -115,13 +107,15 @@ namespace XamarinApp
                 var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
                 if (reachability.IsHostReachable("www.google.com"))
                 {
+                    updatedUser.FirebaseUpdated = 1;
                     var firebase = new FirebaseClient(FirebaseURL);
                     var fbResult = firebase.Child("users").Child(updatedUser.FirebaseReference).PatchAsync(updatedUser);
                 } else
                 {
-                    currentUser.FirebaseUpdated = 0;
-                    db.UpdateUserTable(currentUser);// record that the firebase database was not updated
+                    updatedUser.FirebaseUpdated = 0;
+                    
                 }
+                db.UpdateUserTable(updatedUser);// record that the firebase database was not updated
                 Toast.MakeText(this, "Profile Updated.", ToastLength.Short).Show();
             }
             else

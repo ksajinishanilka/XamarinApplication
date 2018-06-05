@@ -7,8 +7,7 @@ using System;
 using static Android.Views.View;
 using Android.Views;
 using System.Linq;
-using System.Text;
-using System.Security.Cryptography;
+using System.IO;
 
 namespace XamarinApp
 {
@@ -90,6 +89,7 @@ namespace XamarinApp
             if (reachability.IsHostReachable("www.google.com"))
             {
                 auth.SignInWithEmailAndPassword(email, password); //firebase auth signin
+
             }
             if (userData != null)
             {

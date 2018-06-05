@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Firebase.Auth;
 using Firebase.Storage;
 using Firebase.Xamarin.Database;
@@ -19,7 +20,7 @@ namespace XamarinApp
 
             var OfflineAddedUsers = db.GetOfflineAddedUsers();
             var firebase = new FirebaseClient(FirebaseURL);
-
+            Console.WriteLine("Came Here");
             foreach (var user in OfflineAddedUsers)
             {
                 var firebaseKey = (await firebase.Child("users").PostAsync<User>(user)).Key;
@@ -31,18 +32,24 @@ namespace XamarinApp
             var offlineImages = db.GetOfflineAddedUserImages();
             storage = FirebaseStorage.Instance;
             storageRef = storage.GetReferenceFromUrl("gs://xamarinapp-67afd.appspot.com");
+            var direc = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+            var direcs = System.IO.Path.Combine(direc, "Uploads");
+            var files = Directory.GetFiles(direcs);
+            foreach (var file in files)
+            {
+                Console.WriteLine("File is " + file);
+            }
+            Console.WriteLine("Folder is : " + direcs);
             foreach (var image in offlineImages)
             {
                 String guid = Guid.NewGuid().ToString();
                 var imagesref = storageRef.Child("images/" + guid); //guid assigns a new unique identifier to the image before storing in firebase
-                var filepath = Android.Net.Uri.Parse(image.ImageRef);
+                var filepath = Android.Net.Uri.Parse("file://" + image.ImageRef);
                 var putfileResult = imagesref.PutFile(filepath);
-                //    var firebase = new FirebaseClient(FirebaseURL);
-                //    image.ImageRef = imagesref.ToString();
-                //    await firebase.Child("userimages").PostAsync<UserImage>(image);
-                Console.WriteLine("Image ref is " + image.ImageRef);
-                Console.WriteLine("Image guid is " + guid);
-                //    Console.WriteLine("Putfile Result  is " + putfileResult.Result);
+                image.ImageRef = imagesref.ToString();
+                var firebaseReference = (await firebase.Child("userimages").PostAsync<UserImage>(image)).Key;
+                image.FirebaseReference = firebaseReference;
+                db.UpdateUserImageTable(image);
             }
 
             var OfflineUpdatedUsers = db.GetOfflinUpdatedUsers();
@@ -52,8 +59,6 @@ namespace XamarinApp
                 await firebase.Child("users").Child(user.FirebaseReference).PatchAsync(user);
                 db.UpdateUserTable(user);
             }
-
-
         }
         
     }

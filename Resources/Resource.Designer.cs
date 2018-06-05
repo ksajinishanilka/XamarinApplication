@@ -2833,7 +2833,7 @@ namespace XamarinApp
 			public const int pin = 2131427412;
 			
 			// aapt resource value: 0x7f0b00cd
-			public const int profile_btn_logout = 2131427533;
+			public const int profile_btn_dashboard = 2131427533;
 			
 			// aapt resource value: 0x7f0b00c8
 			public const int profile_input_city = 2131427528;

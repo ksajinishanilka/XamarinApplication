@@ -1,5 +1,4 @@
 ﻿using Android.Util;
-using Firebase.Auth;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -10,7 +9,6 @@ namespace XamarinApp
     public class Database
     {
         string folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
-        private FirebaseAuth auth = FirebaseAuth.GetInstance(MainActivity.app);
         private const string DatabaseName = "user.db3";
         public bool CreateDatabase()
         {
@@ -88,6 +86,23 @@ namespace XamarinApp
                 {
                     user.UpdatedAt = DateTime.Now;
                     connection.Update(user);
+                    return 1;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Info("SQLiteEx", ex.Message);
+                return 0;
+            }
+        }
+        //Update Operation by giving a userImage object
+        public int UpdateUserImageTable(UserImage userImage)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(System.IO.Path.Combine(folder, DatabaseName), false))
+                {
+                    connection.Update(userImage);
                     return 1;
                 }
             }

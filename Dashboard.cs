@@ -142,6 +142,10 @@ namespace XamarinApp
                     Toast.MakeText(this, "First choose an image", ToastLength.Short).Show();
 
             }
+            else
+            {
+                Toast.MakeText(this, "Uploaded Successfully", ToastLength.Short).Show();
+            }
 
         }
         private void ChooseImage()
@@ -168,13 +172,13 @@ namespace XamarinApp
                 }
                 catch (Exception ex)
                 {
-                    Toast.MakeText(this, "Out of memory", ToastLength.Short).Show();
+                    Toast.MakeText(this, "Out of Memory", ToastLength.Short).Show();
                 }
             }
         }
         public void OnSuccess(Java.Lang.Object result)
         {
-            Toast.MakeText(this, "Uploaded Successful", ToastLength.Short).Show();
+            Toast.MakeText(this, "Uploaded Successfully", ToastLength.Short).Show();
         }
         public void OnFailure(Java.Lang.Exception e)
         {

@@ -83,8 +83,8 @@
     <Button
         android:layout_marginTop="20dp"
         android:layout_below="@+id/profile_save_data"
-        android:id="@+id/profile_btn_logout"
-        android:text="Logout"
+        android:id="@+id/profile_btn_dashboard"
+        android:text="Dashboard"
         android:background="#3B5998"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
