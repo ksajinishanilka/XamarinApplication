@@ -24,6 +24,9 @@ namespace XamarinApp
         RelativeLayout activity_dashboard;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+        private const string ReachableHost = "www.google.com";
+        private const string FirebaseUserImageChild = "userimages";
+        private const string UploadDirectory = "Uploads";
         private Button btnUpload, btnChoose;
         private ImageView imgView;
         private Android.Net.Uri filePath;
@@ -75,7 +78,7 @@ namespace XamarinApp
                 StartActivity(new Android.Content.Intent(this, typeof(ProfileActivity)));
             else if (v.Id == Resource.Id.dashboard_btn_sync) {
                 var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
-                if (reachability.IsHostReachable("www.google.com"))
+                if (reachability.IsHostReachable(ReachableHost))
                 {
                     dataHandler = new OfflineHandler();
                     dataHandler.Sync();
@@ -100,7 +103,7 @@ namespace XamarinApp
             }
         }
 
-        private void UploadImage()
+        private async void UploadImage()
         {
             var docs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
             
@@ -108,7 +111,7 @@ namespace XamarinApp
             
             try
             {
-                var destination = System.IO.Path.Combine(docs, "Uploads"); //adding uploads folder in the path to store images
+                var destination = System.IO.Path.Combine(docs, UploadDirectory); //adding uploads folder in the path to store images
                 Directory.CreateDirectory(destination); //create uploads folder in specified path
                 var absolutePath = GetRealPathFromURI(Application.Context, filePath);//convert uri to a path
                 var fileName = System.IO.Path.GetFileName(absolutePath); //get the filename from the path
@@ -125,7 +128,7 @@ namespace XamarinApp
                 Console.WriteLine("Thrown exception is" + ex);
             }
             var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
-            if (reachability.IsHostReachable("www.google.com"))
+            if (reachability.IsHostReachable(ReachableHost))
             {
                 String guid = Guid.NewGuid().ToString();// generate a unique id
                
@@ -137,8 +140,11 @@ namespace XamarinApp
                     .AddOnFailureListener(this);
                     var firebase = new FirebaseClient(FirebaseURL); //add image reference to firebase database 
                     img.ImageRef = imagesref.ToString();
-                    firebase.Child("userimages").PostAsync<UserImage>(img);
-                }else
+                    var FirebaseReference = (await firebase.Child(FirebaseUserImageChild).PostAsync<UserImage>(img)).Key;
+                    img.FirebaseReference = FirebaseReference;
+                    db.UpdateUserImageTable(img);
+                }
+                else
                     Toast.MakeText(this, "First choose an image", ToastLength.Short).Show();
 
             }

@@ -21,6 +21,9 @@ namespace XamarinApp
         public static FirebaseApp app;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+        private const string ApplicationId = "1:954847151497:android:523a5296bcd8083b";
+        private const string ApiKey = "AIzaSyAwYiQQo4aH_aL7cISxhjNFdND6x4pAIuI";
+        private const string ReachableHost = "www.google.com";
         Database db;
         OfflineHandler dataHandler;
         protected override void OnCreate(Bundle savedInstanceState)
@@ -49,8 +52,8 @@ namespace XamarinApp
         private void InitFirebaseAuth()
         {
             var options = new FirebaseOptions.Builder()
-               .SetApplicationId("1:954847151497:android:523a5296bcd8083b")
-               .SetApiKey("AIzaSyAwYiQQo4aH_aL7cISxhjNFdND6x4pAIuI")
+               .SetApplicationId(ApplicationId)
+               .SetApiKey(ApiKey)
                .Build();
             if (app == null)
                 app = FirebaseApp.InitializeApp(this, options);
@@ -79,14 +82,12 @@ namespace XamarinApp
 
         private void LoginUser(string email, string password)
         {
-            Console.WriteLine("password is " + password);
             password = AppData.EncryptPassword(password);
-            Console.WriteLine("encrypted password is " + password);
             AppData.LoggedInUser = email;
             var data = db.SelectUserTable(); //retrieve all users in the user table
             var userData = data.Where(x => x.Username == email && x.Password == password).FirstOrDefault(); //getting the matching user 
             var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
-            if (reachability.IsHostReachable("www.google.com"))
+            if (reachability.IsHostReachable(ReachableHost))
             {
                 auth.SignInWithEmailAndPassword(email, password); //firebase auth signin
 

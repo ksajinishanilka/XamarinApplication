@@ -20,6 +20,8 @@ namespace XamarinApp
         RelativeLayout activity_profile;
         FirebaseAuth auth;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+        private const string ReachableHost = "www.google.com";
+        private const string FirebaseUserChild = "users";
         Database db;
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -105,11 +107,11 @@ namespace XamarinApp
             {
                 User updatedUser = db.SelectSingleUser(AppData.LoggedInUser)[0];
                 var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
-                if (reachability.IsHostReachable("www.google.com"))
+                if (reachability.IsHostReachable(ReachableHost))
                 {
                     updatedUser.FirebaseUpdated = 1;
                     var firebase = new FirebaseClient(FirebaseURL);
-                    var fbResult = firebase.Child("users").Child(updatedUser.FirebaseReference).PatchAsync(updatedUser);
+                    var fbResult = firebase.Child(FirebaseUserChild).Child(updatedUser.FirebaseReference).PatchAsync(updatedUser);
                 } else
                 {
                     updatedUser.FirebaseUpdated = 0;

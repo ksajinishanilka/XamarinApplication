@@ -23,6 +23,8 @@ namespace XamarinApp
         Database db;
         OfflineHandler dataHandler;
         private const string FirebaseURL = "https://xamarinapp-67afd.firebaseio.com/";
+        private const string ReachableHost = "www.google.com";
+        private const string FirebaseUserChild = "users";
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -34,7 +36,7 @@ namespace XamarinApp
             db = new Database();
             db.CreateDatabase();
             dataHandler = new OfflineHandler();
-             //Views  
+            //Views  
             btnSignup = FindViewById<Button>(Resource.Id.signup_btn_register);
             btnLogin = FindViewById<TextView>(Resource.Id.signup_btn_login);
             input_email = FindViewById<EditText>(Resource.Id.signup_email);
@@ -57,6 +59,7 @@ namespace XamarinApp
                 SignUpUser(input_email.Text, input_password.Text);
             }
         }
+        //user registration
         private async void SignUpUser(string email, string password)
         {
 
@@ -74,11 +77,11 @@ namespace XamarinApp
                 db.InsertIntoUserTable(user);
                 User addedUser = db.SelectSingleUser(email)[0];
 
-                var reachability = new Reachability.Net.XamarinAndroid.Reachability();
-                if (reachability.IsHostReachable("www.google.com"))
+                var reachability = new Reachability.Net.XamarinAndroid.Reachability();//check network
+                if (reachability.IsHostReachable(ReachableHost))
                 {
                     var firebase = new FirebaseClient(FirebaseURL);
-                    var firebaseKey = (await firebase.Child("users").PostAsync<User>(addedUser)).Key;
+                    var firebaseKey = (await firebase.Child(FirebaseUserChild).PostAsync<User>(addedUser)).Key;
                     user.FirebaseReference = firebaseKey.ToString();
                     db.UpdateUserTable(user);
                     auth.CreateUserWithEmailAndPassword(email, password);
@@ -88,11 +91,11 @@ namespace XamarinApp
             }
 
         }
- 
+        //validation for signup
         private bool ValidateSignUp(string email, string password)
         {
             var data = db.SelectUserTable();// retrieve all users in the user table
-            var userData = data.Where(x => x.Username == email).FirstOrDefault(); //Linq Query  
+            var userData = data.Where(x => x.Username == email).FirstOrDefault();  
             if (userData != null)
             {
                 Toast.MakeText(this, "Signup Failed. Email Already Exists", ToastLength.Short).Show();
